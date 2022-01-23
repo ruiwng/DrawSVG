@@ -66,8 +66,9 @@ class SoftwareRenderer : public SVGRenderer {
 class SoftwareRendererImp : public SoftwareRenderer {
  public:
 
-  SoftwareRendererImp( ) : SoftwareRenderer( ) { }
+  SoftwareRendererImp( ) : SoftwareRenderer(), sample_target(nullptr) { }
 
+  ~SoftwareRendererImp() { if(sample_target) { delete [] sample_target; }}
   // draw an svg input to render target
   void draw_svg( SVG& svg );
 
@@ -132,6 +133,11 @@ class SoftwareRendererImp : public SoftwareRenderer {
 
   // resolve samples to render target
   void resolve( void );
+
+  void fill_sample(unsigned char* target, size_t sx, size_t sy, const Color& c);
+  void fill_pixel(unsigned char* target, size_t x, size_t y, const Color& c);
+
+  unsigned char* sample_target;
 
 }; // class SoftwareRendererImp
 

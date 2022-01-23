@@ -54,7 +54,17 @@ namespace CMU462
 
     // Task 4:
     // You may want to modify this for supersampling support
+    if(this->sample_rate == sample_rate) {
+      return;
+    }
     this->sample_rate = sample_rate;
+    if(sample_target) {
+      delete [] sample_target;
+      sample_target = nullptr;
+    }
+    if (sample_rate != 1) {
+      sample_target = new unsigned char[4 * target_w * target_h * sample_rate * sample_rate];
+    }
   }
 
   void SoftwareRendererImp::set_render_target(unsigned char *render_target,
@@ -64,8 +74,13 @@ namespace CMU462
     // Task 4:
     // You may want to modify this for supersampling support
     this->render_target = render_target;
+    if(sample_rate != 1 && (this->target_w != width || this->target_h != height)) {
+      delete [] sample_target;
+      sample_target = new unsigned char[4 * width * height * sample_rate * sample_rate];
+    }
     this->target_w = width;
     this->target_h = height;
+
   }
 
   void SoftwareRendererImp::draw_element(SVGElement *element)
@@ -254,11 +269,14 @@ namespace CMU462
     if (sy < 0 || sy >= target_h)
       return;
 
+    unsigned char* target;
+    if(sample_rate != 1) {
+      target = sample_target;
+    } else {
+      target = render_target;
+    }
     // fill sample - NOT doing alpha blending!
-    render_target[4 * (sx + sy * target_w)] = (uint8_t)(color.r * 255);
-    render_target[4 * (sx + sy * target_w) + 1] = (uint8_t)(color.g * 255);
-    render_target[4 * (sx + sy * target_w) + 2] = (uint8_t)(color.b * 255);
-    render_target[4 * (sx + sy * target_w) + 3] = (uint8_t)(color.a * 255);
+    fill_pixel(target, sx, sy, color);
   }
 
   void SoftwareRendererImp::rasterize_line(float x0, float y0,
@@ -268,6 +286,12 @@ namespace CMU462
 
     // Task 2:
     // Implement line rasterization
+    unsigned char* target;
+    if(sample_rate != 1) {
+      target = sample_target;
+    } else {
+      target = render_target;
+    }
 
     float t1 = -x0 / (x1 - x0);
     float t2 = (target_w - x0) / (x1 - x0);
@@ -326,10 +350,7 @@ namespace CMU462
       {
         for (int x = sx0; x <= sx1; ++x)
         {
-          render_target[4 * (x + y * target_w)] = r;
-          render_target[4 * (x + y * target_w) + 1] = g;
-          render_target[4 * (x + y * target_w) + 2] = b;
-          render_target[4 * (x + y * target_w) + 3] = a;
+          fill_pixel(target, x, y, color);
           esp += m;
           if (esp > 0.5)
           {
@@ -342,10 +363,7 @@ namespace CMU462
       {
         for (int x = sx0; x <= sx1; ++x)
         {
-          render_target[4 * (x + y * target_w)] = r;
-          render_target[4 * (x + y * target_w) + 1] = g;
-          render_target[4 * (x + y * target_w) + 2] = b;
-          render_target[4 * (x + y * target_w) + 3] = a;
+          fill_pixel(target, x, y, color);
           esp += m;
           if (esp < -0.5)
           {
@@ -371,10 +389,7 @@ namespace CMU462
       {
         for (int y = sy0; y <= sy1; ++y)
         {
-          render_target[4 * (x + y * target_w)] = r;
-          render_target[4 * (x + y * target_w) + 1] = g;
-          render_target[4 * (x + y * target_w) + 2] = b;
-          render_target[4 * (x + y * target_w) + 3] = a;
+          fill_pixel(target, x, y, color);
           esp += m;
           if (esp > 0.5)
           {
@@ -387,10 +402,7 @@ namespace CMU462
       {
         for (int y = sy0; y <= sy1; ++y)
         {
-          render_target[4 * (x + y * target_w)] = r;
-          render_target[4 * (x + y * target_w) + 1] = g;
-          render_target[4 * (x + y * target_w) + 2] = b;
-          render_target[4 * (x + y * target_w) + 3] = a;
+          fill_pixel(target, x, y, color);
           esp += m;
           if (esp < -0.5)
           {
@@ -409,6 +421,24 @@ namespace CMU462
   {
     // Task 3:
     // Implement triangle rasterization
+    unsigned char* target;
+    size_t width, height;
+    if(sample_rate != 1) {
+      x0 *= sample_rate;
+      y0 *= sample_rate;
+      x1 *= sample_rate;
+      y1 *= sample_rate;
+      x2 *= sample_rate;
+      y2 *= sample_rate;
+      target = sample_target;
+      width = target_w * sample_rate;
+      height = target_h * sample_rate;
+    } else {
+      target = render_target;
+      width = target_w;
+      height = target_h;
+    }
+
     float max_x, max_y, middle_x, middle_y, min_x, min_y;
   
     if (y0 >= y1 && y0 >= y2)
@@ -480,11 +510,6 @@ namespace CMU462
       swap(left_y, right_y);
     }
 
-    uint8_t r = (uint8_t)(color.r * 255);
-    uint8_t g = (uint8_t)(color.g * 255);
-    uint8_t b = (uint8_t)(color.b * 255);
-    uint8_t a = (uint8_t)(color.a * 255);
-
     int s_min_x, s_max_x;
     // upper triangle
     float left_dxdy = (max_x - left_x) / (max_y - left_y);
@@ -499,14 +524,11 @@ namespace CMU462
       s_max_x = floor(temp_right_x);
       for (int x = s_min_x; x <= s_max_x; ++x)
       {
-        if (!(x >= 0 && x < target_w && y >= 0 && y < target_h))
+        if (!(x >= 0 && x < width && y >= 0 && y < height))
         {
           continue;
         }
-        render_target[4 * (x + y * target_w)] = r;
-        render_target[4 * (x + y * target_w) + 1] = g;
-        render_target[4 * (x + y * target_w) + 2] = b;
-        render_target[4 * (x + y * target_w) + 3] = a;
+        fill_sample(target, x, y, color);
       }
       temp_left_x += left_dxdy;
       temp_right_x += right_dxdy;
@@ -525,14 +547,11 @@ namespace CMU462
       s_max_x = floor(temp_right_x);
       for (int x = s_min_x; x <= s_max_x; ++x)
       {
-        if (!(x >= 0 && x < target_w && y >= 0 && y < target_h))
+        if (!(x >= 0 && x < width && y >= 0 && y < height))
         {
           continue;
         }
-        render_target[4 * (x + y * target_w)] = r;
-        render_target[4 * (x + y * target_w) + 1] = g;
-        render_target[4 * (x + y * target_w) + 2] = b;
-        render_target[4 * (x + y * target_w) + 3] = a;
+        fill_sample(target, x, y, color);
       }
       temp_left_x -= left_dxdy;
       temp_right_x -= right_dxdy;
@@ -554,7 +573,61 @@ namespace CMU462
     // Task 4:
     // Implement supersampling
     // You may also need to modify other functions marked with "Task 4".
-    return;
+    if(sample_rate == 1) {
+      return;
+    }
+    size_t sample_w = target_w * sample_rate;
+    size_t sample_x = 0, sample_y = 0;
+    float sample_rate_square_reciprocal = 1.0 / (sample_rate * sample_rate);
+    for(size_t y = 0; y < target_h; ++y) {
+      sample_x = 0;
+      for(size_t x = 0; x < target_w; ++x) {
+        unsigned int total[4] = {0, 0, 0, 0};
+        for(size_t i = 0; i < sample_rate; ++i) {
+          for(size_t j = 0; j < sample_rate; ++j) {
+            unsigned int p = 4 * (sample_x + j + (sample_y + i) * sample_w);
+            total[0] += sample_target[p];
+            total[1] += sample_target[p + 1];
+            total[2] += sample_target[p + 2];
+            total[3] += sample_target[p + 3];
+          }
+        }
+        unsigned int p = 4 * (x + y * target_w);
+        render_target[p] = (uint8_t) (total[0] * sample_rate_square_reciprocal);
+        render_target[p + 1] = (uint8_t) (total[1] * sample_rate_square_reciprocal);
+        render_target[p + 2] = (uint8_t) (total[2] * sample_rate_square_reciprocal);
+        render_target[p + 3] = (uint8_t) (total[3] * sample_rate_square_reciprocal);
+        sample_x += sample_rate;
+      }
+      sample_y += sample_rate;
+    }
   }
 
+  void SoftwareRendererImp::fill_sample(unsigned char* target, size_t sx, size_t sy, const Color& c) {
+    size_t width = target_w * sample_rate;
+    unsigned int p = 4 * (sx + sy * width);
+    target[p] = (uint8_t)(c.r * 255);
+    target[p + 1] = (uint8_t)(c.g * 255);
+    target[p + 2] = (uint8_t)(c.b * 255);
+    target[p + 3] = (uint8_t)(c.a * 255);
+  }
+
+  void SoftwareRendererImp::fill_pixel(unsigned char* target, size_t x, size_t y, const Color& c) {
+    size_t sample_x = x * sample_rate;
+    size_t sample_y = y * sample_rate;
+    size_t width = target_w * sample_rate;
+    uint8_t r = (uint8_t)(c.r * 255);
+    uint8_t g = (uint8_t)(c.g * 255);
+    uint8_t b = (uint8_t)(c.b * 255);
+    uint8_t a = (uint8_t)(c.a * 255);
+    for(size_t i = 0; i < sample_rate; ++i) {
+      for(size_t j = 0; j < sample_rate; ++j) {
+        size_t p = 4 * (sample_x + j + width * (sample_y + i));
+        target[p] = r;
+        target[p + 1] = g;
+        target[p + 2] = b;
+        target[p + 3] = a;
+      }
+    }
+  }
 } // namespace CMU462
