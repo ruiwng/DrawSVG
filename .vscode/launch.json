@@ -9,12 +9,13 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build_rel/DrawSVG",
-            "args": [],
+            "args": ["./basic/test3.svg"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/svg",
             "environment": [],
             "externalConsole": false,
-            "MIMode": "gdb",
+            "MIMode": "lldb",
+            "MIDebuggerPath": "/usr/bin/lldb",
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",
@@ -29,12 +30,13 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build_dbg/DrawSVG",
-            "args": [],
+            "args": ["./basic/test3.svg"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/svg",
             "environment": [],
             "externalConsole": false,
-            "MIMode": "gdb",
+            "MIMode": "lldb",
+            "MIDebuggerPath": "/usr/bin/lldb",
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",
