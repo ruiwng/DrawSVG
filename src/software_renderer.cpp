@@ -19,7 +19,9 @@ namespace CMU462
 
     // set top level transformation
     transformation = svg_2_screen;
-
+    while(!transformation_stack.empty()) {
+      transformation_stack.pop();
+    }
     // draw all elements
     for (size_t i = 0; i < svg.elements.size(); ++i)
     {
@@ -89,6 +91,8 @@ namespace CMU462
     // Task 5 (part 1):
     // Modify this to implement the transformation stack
 
+    transformation_stack.push(transformation);
+    transformation = transformation * element->transform;
     switch (element->type)
     {
     case POINT:
@@ -118,6 +122,8 @@ namespace CMU462
     default:
       break;
     }
+    transformation = transformation_stack.top();
+    transformation_stack.pop();
   }
 
   // Primitive Drawing //

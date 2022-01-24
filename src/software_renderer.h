@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <vector>
+#include <stack>
 
 #include "CMU462.h"
 #include "texture.h"
@@ -139,6 +140,7 @@ class SoftwareRendererImp : public SoftwareRenderer {
 
   unsigned char* sample_target;
 
+  std::stack<Matrix3x3> transformation_stack;
 }; // class SoftwareRendererImp
 
 
