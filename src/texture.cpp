@@ -85,10 +85,6 @@ void Sampler2DImp::generate_mips(Texture& tex, int startLevel) {
 
 }
 
-Color Sampler2DImp::get_color(MipLevel& mipLevel, size_t x, size_t y) {
-  
-}
-
 Color Sampler2DImp::sample_nearest(Texture& tex, 
                                    float u, float v, 
                                    int level) {
