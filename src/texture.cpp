@@ -82,10 +82,10 @@ void Sampler2DImp::generate_mips(Texture& tex, int startLevel) {
       float_to_uint8( &mip.texels[i], &c.r );
     }
   */
-    Color color;
     MipLevel& lastMipLevel = tex.mipmap[i - 1];
     for(size_t i = 0; i < mip.height; ++i) {
       for(size_t j = 0; j < mip.width; ++j) {
+        Color color(0.0, 0.0, 0.0, 0.0);
         size_t x0 = i << 1;
         size_t y0 = j << 1;
         color += lastMipLevel.get_color(x0, y0);
@@ -111,8 +111,8 @@ Color Sampler2DImp::sample_nearest(Texture& tex,
   // return Color(1.0, 0.0, 0.0, 1.0);
   // return magenta for invalid level
   MipLevel& mipLevel = tex.mipmap[level];
-  size_t x = mipLevel.width * u;
-  size_t y = mipLevel.height * v;
+  size_t x = (mipLevel.width - 1) * u;
+  size_t y = (mipLevel.height - 1) * v;
   return mipLevel.get_color(x, y);
 }
 
@@ -126,16 +126,16 @@ Color Sampler2DImp::sample_bilinear(Texture& tex,
   }
 
   MipLevel& mipLevel = tex.mipmap[level];
-  float x = mipLevel.width * u;
-  float y = mipLevel.height * v;
+  float x = (mipLevel.width - 1) * u;
+  float y = (mipLevel.height - 1) * v;
   size_t sx0 = floor(x);
   size_t sy0 = floor(y);
   size_t sx1 = sx0 + 1;
-  if(sx1 >= mipLevel.width) {
+  if(sx1 >= mipLevel.width - 1) {
     sx1 = sx0;
   }
   size_t sy1 = sy0 + 1;
-  if(sy1 >= mipLevel.height) {
+  if(sy1 >= mipLevel.height - 1) {
     sy1 = sy0;
   }
   float x_weight = x - sx0;
