@@ -77,9 +77,24 @@ void Sampler2DImp::generate_mips(Texture& tex, int startLevel) {
 
     Color c = colors[i % 3];
     MipLevel& mip = tex.mipmap[i];
-
+  /*
     for(size_t i = 0; i < 4 * mip.width * mip.height; i += 4) {
       float_to_uint8( &mip.texels[i], &c.r );
+    }
+  */
+    Color color;
+    MipLevel& lastMipLevel = tex.mipmap[i - 1];
+    for(size_t i = 0; i < mip.height; ++i) {
+      for(size_t j = 0; j < mip.width; ++j) {
+        size_t x0 = i << 1;
+        size_t y0 = j << 1;
+        color += lastMipLevel.get_color(x0, y0);
+        color += lastMipLevel.get_color(x0, y0 + 1);
+        color += lastMipLevel.get_color(x0 + 1, y0);
+        color += lastMipLevel.get_color(x0 + 1, y0 + 1);
+        color *= 0.25;
+        float_to_uint8(&mip.texels[4 * (j + i * mip.width)], &color.r);
+      }
     }
   }
 
@@ -142,9 +157,22 @@ Color Sampler2DImp::sample_trilinear(Texture& tex,
 
   // Task 7: Implement trilinear filtering
 
-  // return magenta for invalid level
-  return Color(1,0,1,1);
+  float numLevel = fmin(log2(1.0 / u_scale), log2(1.0 / v_scale));
+  float level0 = floor(numLevel);
+  float weight = numLevel - level0;
+  size_t sLevel0 = fmax(0, fmin(level0, tex.mipmap.size() - 1));
+  float level1 = ceil(numLevel);
+  size_t sLevel1 = fmax(0, fmin(level1, tex.mipmap.size() - 1));
 
+  Color color1 = sample_bilinear(tex, u, v, sLevel0);
+  Color color2;
+  if(sLevel0 != sLevel1) {
+    color2 = sample_bilinear(tex, u, v, sLevel1);
+  } else {
+    color2 = color1;
+  }
+  return color1 * (1.0 - weight) + color2 * weight;
+  // return magenta for invalid level
 }
 
 } // namespace CMU462

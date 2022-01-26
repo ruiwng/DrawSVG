@@ -582,11 +582,13 @@ namespace CMU462
     }
     size_t min_x = fmax(0.0, x0), min_y = fmax(0.0, y0), max_x = fmin(this->target_w, x1), max_y = fmin(this->target_h, y1);
     float u, v;
+    float u_scale = (x1 - x0) / tex.width;
+    float v_scale = (y1 - y0) / tex.height;
     for(size_t y = min_y; y <= max_y; ++y) {
       v = (y - y0) / (y1 - y0);
       for(size_t x = min_x; x <= max_x; ++x) {
         u = (x - x0) / (x1 - x0);
-        Color color = sampler->sample_bilinear(tex, u, v, 0);
+        Color color = sampler->sample_trilinear(tex, u, v, u_scale, v_scale);
         fill_sample(target, x, y, color);
       }
     }
