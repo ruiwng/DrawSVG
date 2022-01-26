@@ -570,6 +570,26 @@ namespace CMU462
   {
     // Task 6:
     // Implement image rasterization
+    unsigned char* target;
+    if(sample_rate != 1) {
+      target = sample_target;
+      x0 *= sample_rate;
+      y0 *= sample_rate;
+      x1 *= sample_rate;
+      y1 *= sample_rate;
+    } else {
+      target = render_target;
+    }
+    size_t min_x = fmax(0.0, x0), min_y = fmax(0.0, y0), max_x = fmin(this->target_w, x1), max_y = fmin(this->target_h, y1);
+    float u, v;
+    for(size_t y = min_y; y <= max_y; ++y) {
+      v = (y - y0) / (y1 - y0);
+      for(size_t x = min_x; x <= max_x; ++x) {
+        u = (x - x0) / (x1 - x0);
+        Color color = sampler->sample_bilinear(tex, u, v, 0);
+        fill_sample(target, x, y, color);
+      }
+    }
   }
 
   // resolve samples to render target

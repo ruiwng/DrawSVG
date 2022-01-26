@@ -25,6 +25,13 @@ inline void float_to_uint8( unsigned char* dst, float src[4] ) {
   dst_uint8[3] = (uint8_t) ( 255.f * max( 0.0f, min( 1.0f, src[3])));
 }
 
+Color MipLevel::get_color(size_t x, size_t y) {
+  size_t pos = 4 * (x + y * width);
+  float dst[4];
+  uint8_to_float(dst, &texels[pos]);
+  return Color(dst[0], dst[1], dst[2], dst[3]);
+}
+
 void Sampler2DImp::generate_mips(Texture& tex, int startLevel) {
 
   // NOTE: 
@@ -78,15 +85,24 @@ void Sampler2DImp::generate_mips(Texture& tex, int startLevel) {
 
 }
 
+Color Sampler2DImp::get_color(MipLevel& mipLevel, size_t x, size_t y) {
+  
+}
+
 Color Sampler2DImp::sample_nearest(Texture& tex, 
                                    float u, float v, 
                                    int level) {
 
   // Task 6: Implement nearest neighbour interpolation
-  
+  if (level >= tex.mipmap.size()) {
+    return Color(1, 0, 1, 1);
+  }
+  // return Color(1.0, 0.0, 0.0, 1.0);
   // return magenta for invalid level
-  return Color(1,0,1,1);
-
+  MipLevel& mipLevel = tex.mipmap[level];
+  size_t x = mipLevel.width * u;
+  size_t y = mipLevel.height * v;
+  return mipLevel.get_color(x, y);
 }
 
 Color Sampler2DImp::sample_bilinear(Texture& tex, 
@@ -94,10 +110,34 @@ Color Sampler2DImp::sample_bilinear(Texture& tex,
                                     int level) {
   
   // Task 6: Implement bilinear filtering
+  if (level >= tex.mipmap.size()) {
+    return Color(1, 0, 1, 1);
+  }
+
+  MipLevel& mipLevel = tex.mipmap[level];
+  float x = mipLevel.width * u;
+  float y = mipLevel.height * v;
+  size_t sx0 = floor(x);
+  size_t sy0 = floor(y);
+  size_t sx1 = sx0 + 1;
+  if(sx1 >= mipLevel.width) {
+    sx1 = sx0;
+  }
+  size_t sy1 = sy0 + 1;
+  if(sy1 >= mipLevel.height) {
+    sy1 = sy0;
+  }
+  float x_weight = x - sx0;
+  float y_weight = y - sy0;
 
   // return magenta for invalid level
-  return Color(1,0,1,1);
+  auto color1 = mipLevel.get_color(sx0, sy0);
+  auto color2 = mipLevel.get_color(sx0, sy1);
+  auto color3 = mipLevel.get_color(sx1, sy0);
+  auto color4 = mipLevel.get_color(sx1, sy1);
 
+  return (color1 * (1.0 - y_weight) + color2 * y_weight) * (1.0 - x_weight) +  
+  (color3 * (1.0 - y_weight) + color4 * y_weight) * x_weight;
 }
 
 Color Sampler2DImp::sample_trilinear(Texture& tex, 
