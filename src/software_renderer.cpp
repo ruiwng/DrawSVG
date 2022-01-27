@@ -444,7 +444,6 @@ namespace CMU462
       width = target_w;
       height = target_h;
     }
-
     float max_x, max_y, middle_x, middle_y, min_x, min_y;
   
     if (y0 >= y1 && y0 >= y2)
@@ -515,53 +514,59 @@ namespace CMU462
       swap(left_x, right_x);
       swap(left_y, right_y);
     }
-
     int s_min_x, s_max_x;
+    float left_dxdy, right_dxdy;
+    int s_min_y, s_max_y;
+    float temp_left_x, temp_right_x;
     // upper triangle
-    float left_dxdy = (max_x - left_x) / (max_y - left_y);
-    float right_dxdy = (max_x - right_x) / (max_y - right_y);
-    int s_min_y = floor(middle_y);
-    int s_max_y = floor(max_y);
-    float temp_left_x = left_x;
-    float temp_right_x = right_x;
-    for (int y = s_min_y; y <= s_max_y; ++y)
-    {
-      s_min_x = floor(temp_left_x);
-      s_max_x = floor(temp_right_x);
-      for (int x = s_min_x; x <= s_max_x; ++x)
+    if(max_y - middle_y > 0.001) {
+      left_dxdy = (max_x - left_x) / (max_y - left_y);
+      right_dxdy = (max_x - right_x) / (max_y - right_y);
+      s_min_y = ceil(middle_y);
+      s_max_y = floor(max_y);
+      temp_left_x = left_x + (s_min_y - middle_y) * left_dxdy;
+      temp_right_x = right_x + (s_min_y - middle_y) * right_dxdy;;
+      for (int y = s_min_y; y <= s_max_y; ++y)
       {
-        if (!(x >= 0 && x < width && y >= 0 && y < height))
+        s_min_x = floor(temp_left_x);
+        s_max_x = floor(temp_right_x);
+        for (int x = s_min_x; x <= s_max_x; ++x)
         {
-          continue;
+          if (!(x >= 0 && x < width && y >= 0 && y < height))
+          {
+            continue;
+          }
+          fill_sample(target, x, y, color);
         }
-        fill_sample(target, x, y, color);
+        temp_left_x += left_dxdy;
+        temp_right_x += right_dxdy;
       }
-      temp_left_x += left_dxdy;
-      temp_right_x += right_dxdy;
     }
-
     // lower triangle
-    left_dxdy = (min_x - left_x) / (min_y - left_y);
-    right_dxdy = (min_x - right_x) / (min_y - right_y);
-    s_min_y = floor(min_y);
-    s_max_y = floor(middle_y);
-    temp_left_x = left_x;
-    temp_right_x = right_x;
-    for (int y = s_max_y; y >= s_min_y; --y)
-    {
-      s_min_x = floor(temp_left_x);
-      s_max_x = floor(temp_right_x);
-      for (int x = s_min_x; x <= s_max_x; ++x)
+    if(middle_y - min_y > 0.001) {
+      left_dxdy = (min_x - left_x) / (min_y - left_y);
+      right_dxdy = (min_x - right_x) / (min_y - right_y);
+      s_min_y = ceil(min_y);
+      s_max_y = floor(middle_y);
+      temp_left_x = left_x + (s_max_y - middle_y) * left_dxdy;
+      temp_right_x = right_x + (s_max_y - middle_y) * right_dxdy;
+      for (int y = s_max_y; y >= s_min_y; --y)
       {
-        if (!(x >= 0 && x < width && y >= 0 && y < height))
+        s_min_x = floor(temp_left_x);
+        s_max_x = floor(temp_right_x);
+        for (int x = s_min_x; x <= s_max_x; ++x)
         {
-          continue;
+          if (!(x >= 0 && x < width && y >= 0 && y < height))
+          {
+            continue;
+          }
+          fill_sample(target, x, y, color);
         }
-        fill_sample(target, x, y, color);
+        temp_left_x -= left_dxdy;
+        temp_right_x -= right_dxdy;
       }
-      temp_left_x -= left_dxdy;
-      temp_right_x -= right_dxdy;
     }
+    
   }
 
   void SoftwareRendererImp::rasterize_image(float x0, float y0,
@@ -648,6 +653,7 @@ namespace CMU462
     float b = c.b * 255;
     float a = c.a * 255;
     float alpha = c.a;
+
     for(size_t i = 0; i < sample_rate; ++i) {
       for(size_t j = 0; j < sample_rate; ++j) {
         size_t p = 4 * (sample_x + j + width * (sample_y + i));
