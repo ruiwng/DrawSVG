@@ -17,6 +17,11 @@ namespace CMU462
   void SoftwareRendererImp::draw_svg(SVG &svg)
   {
 
+    if(sample_target) {
+      memset(sample_target, 0, 4 * target_w * target_h * sample_rate * sample_rate);
+    } else {
+      memset(render_target, 0, 4 * target_w * target_h);
+    }
     // set top level transformation
     transformation = svg_2_screen;
     while(!transformation_stack.empty()) {
@@ -335,11 +340,6 @@ namespace CMU462
     int dx = sx1 - sx0;
     int dy = sy1 - sy0;
 
-    uint8_t r = (uint8_t)(color.r * 255);
-    uint8_t g = (uint8_t)(color.g * 255);
-    uint8_t b = (uint8_t)(color.b * 255);
-    uint8_t a = (uint8_t)(color.a * 255);
-
     if (abs(dx) >= abs(dy))
     {
       if (dx < 0)
@@ -634,27 +634,28 @@ namespace CMU462
   void SoftwareRendererImp::fill_sample(unsigned char* target, size_t sx, size_t sy, const Color& c) {
     size_t width = target_w * sample_rate;
     unsigned int p = 4 * (sx + sy * width);
-    target[p] = (uint8_t)(c.r * 255);
-    target[p + 1] = (uint8_t)(c.g * 255);
-    target[p + 2] = (uint8_t)(c.b * 255);
-    target[p + 3] = (uint8_t)(c.a * 255);
+    target[p] = (uint8_t)(c.r * 255 + target[p] * (1.0 - c.a));
+    target[p + 1] = (uint8_t)(c.g * 255 + target[p + 1] * (1.0 - c.a));
+    target[p + 2] = (uint8_t)(c.b * 255 + target[p + 2] * (1.0 - c.a));
+    target[p + 3] = (uint8_t)(255 - (255 - target[p + 3]) * (1.0 - c.a));
   }
 
   void SoftwareRendererImp::fill_pixel(unsigned char* target, size_t x, size_t y, const Color& c) {
     size_t sample_x = x * sample_rate;
     size_t sample_y = y * sample_rate;
     size_t width = target_w * sample_rate;
-    uint8_t r = (uint8_t)(c.r * 255);
-    uint8_t g = (uint8_t)(c.g * 255);
-    uint8_t b = (uint8_t)(c.b * 255);
-    uint8_t a = (uint8_t)(c.a * 255);
+    float r = c.r * 255;
+    float g = c.g * 255;
+    float b = c.b * 255;
+    float a = c.a * 255;
+    float alpha = c.a;
     for(size_t i = 0; i < sample_rate; ++i) {
       for(size_t j = 0; j < sample_rate; ++j) {
         size_t p = 4 * (sample_x + j + width * (sample_y + i));
-        target[p] = r;
-        target[p + 1] = g;
-        target[p + 2] = b;
-        target[p + 3] = a;
+        target[p] = uint8_t(r + target[p] * (1.0 - alpha));
+        target[p + 1] = uint8_t(g + target[p + 1] * (1.0 - alpha));
+        target[p + 2] = uint8_t(b + target[p + 2] * (1.0 - alpha));
+        target[p + 3] = uint8_t(255 - (255 - target[p + 3]) * (1.0 - alpha));
       }
     }
   }
