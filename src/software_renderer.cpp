@@ -573,23 +573,22 @@ namespace CMU462
     unsigned char* target;
     if(sample_rate != 1) {
       target = sample_target;
-      x0 *= sample_rate;
-      y0 *= sample_rate;
-      x1 *= sample_rate;
-      y1 *= sample_rate;
     } else {
       target = render_target;
     }
-    size_t min_x = fmax(0.0, x0), min_y = fmax(0.0, y0), max_x = fmin(this->target_w, x1), max_y = fmin(this->target_h, y1);
+    size_t min_x = fmax(0.0, x0), min_y = fmax(0.0, y0), max_x = fmin(this->target_w - 1, x1), max_y = fmin(this->target_h - 1, y1);
     float u, v;
     float u_scale = (x1 - x0) / tex.width;
     float v_scale = (y1 - y0) / tex.height;
     for(size_t y = min_y; y <= max_y; ++y) {
       v = (y - y0) / (y1 - y0);
+      v = fmax(0.0, v);
       for(size_t x = min_x; x <= max_x; ++x) {
         u = (x - x0) / (x1 - x0);
+        u = fmax(0.0, u);
         Color color = sampler->sample_trilinear(tex, u, v, u_scale, v_scale);
-        fill_sample(target, x, y, color);
+        // Color color = sampler->sample_nearest(tex, u, v, 0);
+        fill_pixel(target, x, y, color);
       }
     }
   }
