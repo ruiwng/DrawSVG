@@ -25,6 +25,13 @@ inline void float_to_uint8( unsigned char* dst, float src[4] ) {
   dst_uint8[3] = (uint8_t) ( 255.f * max( 0.0f, min( 1.0f, src[3])));
 }
 
+Color MipLevel::get_color_with_premuliply_alpha(size_t x, size_t y) {
+  size_t pos = 4 * (x + y * width);
+  float dst[4];
+  uint8_to_float(dst, &texels[pos]);
+  return Color(dst[0] * dst[3], dst[1] * dst[3], dst[2] * dst[3], dst[3]);
+}
+
 Color MipLevel::get_color(size_t x, size_t y) {
   size_t pos = 4 * (x + y * width);
   float dst[4];
@@ -86,8 +93,8 @@ void Sampler2DImp::generate_mips(Texture& tex, int startLevel) {
     for(size_t i = 0; i < mip.height; ++i) {
       for(size_t j = 0; j < mip.width; ++j) {
         Color color(0.0, 0.0, 0.0, 0.0);
-        size_t x0 = i << 1;
-        size_t y0 = j << 1;
+        size_t x0 = j << 1;
+        size_t y0 = i << 1;
         color += lastMipLevel.get_color(x0, y0);
         color += lastMipLevel.get_color(x0, y0 + 1);
         color += lastMipLevel.get_color(x0 + 1, y0);
@@ -113,7 +120,7 @@ Color Sampler2DImp::sample_nearest(Texture& tex,
   MipLevel& mipLevel = tex.mipmap[level];
   size_t x = (mipLevel.width - 1) * u;
   size_t y = (mipLevel.height - 1) * v;
-  return mipLevel.get_color(x, y);
+  return mipLevel.get_color_with_premuliply_alpha(x, y);
 }
 
 Color Sampler2DImp::sample_bilinear(Texture& tex, 
@@ -142,10 +149,10 @@ Color Sampler2DImp::sample_bilinear(Texture& tex,
   float y_weight = y - sy0;
 
   // return magenta for invalid level
-  auto color1 = mipLevel.get_color(sx0, sy0);
-  auto color2 = mipLevel.get_color(sx0, sy1);
-  auto color3 = mipLevel.get_color(sx1, sy0);
-  auto color4 = mipLevel.get_color(sx1, sy1);
+  auto color1 = mipLevel.get_color_with_premuliply_alpha(sx0, sy0);
+  auto color2 = mipLevel.get_color_with_premuliply_alpha(sx0, sy1);
+  auto color3 = mipLevel.get_color_with_premuliply_alpha(sx1, sy0);
+  auto color4 = mipLevel.get_color_with_premuliply_alpha(sx1, sy1);
 
   return (color1 * (1.0 - y_weight) + color2 * y_weight) * (1.0 - x_weight) +  
   (color3 * (1.0 - y_weight) + color4 * y_weight) * x_weight;

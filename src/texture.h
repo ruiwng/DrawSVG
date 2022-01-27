@@ -19,6 +19,7 @@ struct MipLevel {
   size_t height;
   std::vector<unsigned char> texels;
   Color get_color(size_t x, size_t y);
+  Color get_color_with_premuliply_alpha(size_t x, size_t y);
 };
 
 struct Texture {
